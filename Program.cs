@@ -1,5 +1,10 @@
-using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,12 +13,12 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
-// Add services to the container.
+// Adicione serviços ao contêiner.
 builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure o pipeline de requisições HTTP.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -22,30 +27,42 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Add a custom middleware to log requests
+// Adicione um middleware para lidar com requisições POST em /StaticFiles
 app.Use(async (context, next) =>
 {
-    // Get the logger
-    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-
-    // Log something
-    logger.LogDebug("Requisição recebida: {0}", context.Request.Path);
-
-    await next.Invoke();
-});
-
-// UseStaticFiles to serve files from the "MyStaticFiles" folder
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(Directory.GetCurrentDirectory(), "MyStaticFiles")),
-    RequestPath = "/StaticFiles"
+    if (context.Request.Method == "POST" && context.Request.Path == "/StaticFiles")
+    {
+        // Verifique se há algum texto no parâmetro "fileName"
+        var fileName = context.Request.Form["fileName"];
+        if (!string.IsNullOrEmpty(fileName))
+        {
+            // Lógica para servir o arquivo do diretório MyStaticFiles
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "MyStaticFiles", fileName);
+            if (File.Exists(filePath))
+            {
+                await context.Response.SendFileAsync(filePath);
+            }
+            else
+            {
+                context.Response.StatusCode = 404;
+                await context.Response.WriteAsync("Arquivo não encontrado.");
+            }
+        }
+        else
+        {
+            context.Response.StatusCode = 400;
+            await context.Response.WriteAsync("Parâmetro 'meuParametro' não especificado.");
+        }
+    }
+    else
+    {
+        // Se não for uma requisição POST para /StaticFiles, continue com o próximo middleware.
+        await next.Invoke();
+    }
 });
 
 app.UseRouting();
-
 app.UseAuthorization();
-
 app.MapRazorPages();
 
 app.Run();
