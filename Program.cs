@@ -16,31 +16,19 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var secretKey = "LPCS-JER_kw63ozyKYsbpOvDfkb6iiZ6cx9UQFu6fKDWH2ECRIDODdwNTT_oiR3rY9VSkZPpOdY94Zv78OmuhTK9AENutBuSsLHkrNWU7PHVe7mvuzY3iYhsJ369SyN83RyZQBYS4axb1trRqSCJ3N3DOK9r6Y8LL19os3ZryxmO8igWeng3XynLDFOBxC9aOW0_nCUhiY1dEiwxpVTjOe5u_v7Ain4ihyO28uUwNEOc9drn2WRvklCT7U9mXWx1L7sRuP6_doRETKDX_ZSL6oVuBVa7KgZ9S9BuEBd6uMs-NjqZZ6dpVBpKHA5LRcX1mlB7ecPFq_ouwtJeAPpMBI8b0UaSGNA_mBqfOn7O95bzPR0SbYepAoQUmvu9jiDJf0Gm_LDjdue6LrLcNJgxRAXFq0AcLvtejAn3Zdftj85Vn5h3bO8c-F8z8m5pVtYgCZ7d_G9PEMpx9NkVNZucgrOd1ezMFwZDvDqPhUnY2AK5trG_ktT0uA9xSVmU70uIGcu_boM4dBBiCtIIeB7ZNXUyex0WNX9wztjJw3SPnYISki9xxG-zGu2EcGIr0GuijNTW34-2s4I2k8AX_mX5Bkszsv4d88gqDxXsSowjieXO3sJhJ5d1vOfKfI2UOGR_MzgLUXAZSUW8SnrwhSP3rIduQ7nxdORiXoPsf9ESCk95c9XKoZF6G7StOxY2NgWoIu8YY0HU-wGpcRB9BvdOYl4cOqO5PscjIWsoRfaQZNpSn1oDvuNw9G580Bt_O2Y707xwFkiPTQbAUygPhll6pJfLF2hKzCoySTqeclrgm8nb1DfYRcDIUIRe6YXiRC-_maUOLGlWIpnEuXBj_N5Jpfw2mrw2W7Q5Nq65xePvSJB5YqbyIDNj3Sd78pJTK54HkMUUHyx0jTUSJUP1JfA0bEOmpGOVAj-Y6yN3rCEEc9Dil9ZqKIfVtuIQxqYA2g5D";
-var keyBytes = Encoding.UTF8.GetBytes(secretKey);
-var signingKey = new SymmetricSecurityKey(keyBytes);
-
-// Configuração do token JWT
-//var tokenValidationParameters = new TokenValidationParameters
-//{
-//    ValidateIssuer = false,
-//    ValidateAudience = false,
-//    ValidateLifetime = false, // Validação do tempo de expiração
-//    ValidateIssuerSigningKey = false, // Validaremos a chave secreta
-//    IssuerSigningKey = signingKey,
-//    ClockSkew = TimeSpan.FromMinutes(500000) // Evita a tolerância de tempo (tokens expirados são rejeitados)
-//};
 var configPath = "appsettings.json"; 
 var json = File.ReadAllText(configPath);
 var config = JObject.Parse(json);
 var issuer = config["issuer"].ToString();
-
+var secretKey = config["secretKey"].ToString();
+var keyBytes = Encoding.UTF8.GetBytes(secretKey);
+var signingKey = new SymmetricSecurityKey(keyBytes);
 
 
 var tokenValidationParameters = new TokenValidationParameters
 {
     ValidateIssuer = true,
-    ValidIssuer = "meuSegredo",
+    ValidIssuer = issuer,
 
     ValidateAudience = false,
     ValidAudience = "",
@@ -84,12 +72,13 @@ builder.Services.AddCors(options =>
 
 // Configure o Serilog
 Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
     .WriteTo.Console()
     .WriteTo.File("error.log", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
 Log.Information("Application started!");
-Log.Error("This is a test error message!");
+Log.Error("Essa é uma mensagem de erro de testes, gerada na inicialização do serviço.");
 
 var app = builder.Build();
 
