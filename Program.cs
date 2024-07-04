@@ -33,7 +33,7 @@ var tokenValidationParameters = new TokenValidationParameters
     ValidateAudience = false,
     ValidAudience = "",
 
-    ValidateIssuerSigningKey = false,
+    ValidateIssuerSigningKey = true,
 
     SignatureValidator = delegate (string token, TokenValidationParameters parameters)
     {
@@ -48,7 +48,7 @@ var tokenValidationParameters = new TokenValidationParameters
     ClockSkew = TimeSpan.Zero,
 };
 
-tokenValidationParameters.RequireSignedTokens = false;
+tokenValidationParameters.RequireSignedTokens = !tokenValidationParameters.RequireSignedTokens;
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -123,14 +123,14 @@ app.MapPost("/StaticFiles", async context =>
                 else
                 {
                     context.Response.StatusCode = 404;
-                    Log.Information(("Arquivo " + filePath + " não encontrado."));
+                    Log.Error(("Arquivo " + filePath + " não encontrado."));
                     await context.Response.WriteAsync("Arquivo não encontrado.");
                 }
             }
             else
             {
                 context.Response.StatusCode = 401; // Não autorizado
-                Log.Information("Token" + token + "inválido ou expirado.");
+                Log.Warning("Token" + token + "inválido ou expirado.");
                 await context.Response.WriteAsync("Token inválido ou expirado.");
             }
         }
